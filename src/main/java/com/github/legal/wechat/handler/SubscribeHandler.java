@@ -1,18 +1,28 @@
 package com.github.legal.wechat.handler;
 
 import com.github.legal.wechat.builder.TextBuilder;
+import com.github.legal.wechat.domain.po.User;
+import com.github.legal.wechat.service.UserService;
 import me.chanjar.weixin.common.exception.WxErrorException;
 import me.chanjar.weixin.common.session.WxSessionManager;
 import me.chanjar.weixin.mp.api.WxMpService;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlMessage;
 import me.chanjar.weixin.mp.bean.message.WxMpXmlOutMessage;
 import me.chanjar.weixin.mp.bean.result.WxMpUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
 @Component
 public class SubscribeHandler extends AbstractHandler {
+
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
+    @Autowired
+    private UserService userService;
 
     @Override
     public WxMpXmlOutMessage handle(WxMpXmlMessage wxMessage,
@@ -26,7 +36,31 @@ public class SubscribeHandler extends AbstractHandler {
                 .userInfo(wxMessage.getFromUser(), null);
 
         if (userWxInfo != null) {
-            // TODO 可以添加关注用户到本地
+            String openId = userWxInfo.getOpenId();
+
+            User oldUser = userService.findByOpenId(openId);
+            if(oldUser != null){
+                oldUser.setSubcribe(true);
+                oldUser.setSubscribetime(userWxInfo.getSubscribeTime());
+                userService.updateSubcribe(oldUser);
+            }else {
+                User user = new User();
+                user.setSubcribe(true);
+                user.setOpenid(openId);
+                user.setWxnickname(userWxInfo.getNickname());
+                user.setSex(userWxInfo.getSex());
+                user.setWxlanguage(userWxInfo.getLanguage());
+                user.setCity(userWxInfo.getCity());
+                user.setProvince(userWxInfo.getProvince());
+                user.setCountry(userWxInfo.getCountry());
+                user.setHeadimgurl(userWxInfo.getHeadImgUrl());
+                user.setSubscribetime(userWxInfo.getSubscribeTime());
+                user.setUnionid(userWxInfo.getUnionId());
+                user.setRemark(userWxInfo.getRemark());
+                user.setGroupid(userWxInfo.getGroupId());
+
+                userService.addUser(user);
+            }
         }
 
         WxMpXmlOutMessage responseResult = null;
